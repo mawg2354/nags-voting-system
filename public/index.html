@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAGS VOTING SYSTEM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 py-12">
+    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div class="bg-blue-600 p-6 text-center">
+            <h1 class="text-2xl font-bold text-white tracking-wide">NAGS VOTING SYSTEM</h1>
+            <p id="election-name-header" class="text-blue-100 mt-2 text-sm font-semibold">Loading Election...</p>
+        </div>
+        
+        <div id="content" class="p-8">
+            <div id="loading" class="text-center py-8">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Verifying access...</p>
+            </div>
+
+            <div id="error-container" class="hidden text-center py-10">
+                <div class="text-red-500 text-6xl mb-4">⚠️</div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+                <p id="error-message" class="text-gray-600 text-lg"></p>
+            </div>
+
+            <div id="voting-container" class="hidden">
+                <p class="text-gray-600 mb-8 text-center">Please cast your vote for each portfolio below. You must select a candidate (or choose to abstain) for every position to submit your ballot.</p>
+                <form id="voting-form" class="space-y-10">
+                    <div id="portfolios-list" class="space-y-10">
+                        <!-- Portfolios and candidates injected here -->
+                    </div>
+                    <div class="pt-6 border-t border-gray-200">
+                        <button type="submit" id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-lg tracking-wide">
+                            Submit Secure Ballot
+                        </button>
+                        <p id="validation-error" class="text-red-500 text-sm text-center hidden mt-4"></p>
+                    </div>
+                </form>
+            </div>
+
+            <div id="success-container" class="hidden text-center py-12">
+                <div class="text-green-500 text-6xl mb-6">✓</div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Vote Cast Successfully</h2>
+                <p class="text-gray-600 text-lg">Thank you for participating in the election. Your ballot has been recorded securely and anonymously.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            const electionNameHeader = document.getElementById('election-name-header');
+            const loadingEl = document.getElementById('loading');
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+            const votingContainer = document.getElementById('voting-container');
+            const portfoliosList = document.getElementById('portfolios-list');
+            const votingForm = document.getElementById('voting-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const successContainer = document.getElementById('success-container');
+            const validationError = document.getElementById('validation-error');
+
+            function showError(msg) {
+                loadingEl.classList.add('hidden');
+                votingContainer.classList.add('hidden');
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = msg;
+                electionNameHeader.textContent = 'Notice';
+            }
+
+            if (!token) {
+                showError('No voting token provided in the URL. Please use the exact link sent to you.');
+                return;
+            }
+
+            let electionData = null;
+
+            try {
+                const response = await fetch(`/api/election/${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                loadingEl.classList.add('hidden');
+
+                if (!response.ok) {
+                    showError(data.error || 'Failed to verify token.');
+                    return;
+                }
+
+                electionData = data;
+                electionNameHeader.textContent = data.election.name;
+                votingContainer.classList.remove('hidden');
+
+                if (data.portfolios.length === 0) {
+                    portfoliosList.innerHTML = '<p class="text-center text-gray-500 italic">No portfolios have been set up for this election yet.</p>';
+                    submitBtn.disabled = true;
+                    return;
+                }
+
+                data.portfolios.forEach(portfolio => {
+                    const section = document.createElement('div');
+                    
+                    let candidatesHtml = '';
+                    if (portfolio.candidates.length === 0) {
+                        candidatesHtml = '<p class="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-lg">No candidates available.</p>';
+                    } else {
+                        portfolio.candidates.forEach(candidate => {
+                            const photoHtml = candidate.photo_url 
+                                ? `<img src="${candidate.photo_url}" alt="${candidate.name}" class="w-16 h-16 rounded-full object-cover shadow-sm border border-gray-200 shrink-0">`
+                                : `<div class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold shadow-sm border border-blue-200 shrink-0">${candidate.name.charAt(0)}</div>`;
+                            
+                            const bioHtml = candidate.bio 
+                                ? `<p class="text-sm text-gray-500 mt-1">${candidate.bio}</p>`
+                                : '';
+
+                            candidatesHtml += `
+                                <label class="flex items-start p-5 border border-gray-200 bg-white rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition duration-200 shadow-sm">
+                                    <div class="pt-1 flex-shrink-0 mr-4">
+                                        <input type="radio" name="portfolio_${portfolio.id}" value="${candidate.id}" class="h-6 w-6 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    </div>
+                                    <div class="flex items-start gap-4 flex-1">
+                                        ${photoHtml}
+                                        <div>
+                                            <h4 class="text-lg font-bold text-gray-800 leading-tight">${candidate.name}</h4>
+                                            ${bioHtml}
+                                        </div>
+                                    </div>
+                                </label>
+                            `;
+                        });
+                    }
+
+                    // Add Abstain Option
+                    candidatesHtml += `
+                        <label class="flex items-center p-5 border border-gray-200 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 hover:border-gray-400 transition duration-200 shadow-sm md:col-span-2">
+                            <div class="flex-shrink-0 mr-4">
+                                <input type="radio" name="portfolio_${portfolio.id}" value="abstain" class="h-6 w-6 text-gray-600 focus:ring-gray-500 border-gray-300">
+                            </div>
+                            <div class="flex items-center gap-4 flex-1">
+                                <div class="w-12 h-12 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-xl font-bold shrink-0">A</div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-gray-700 leading-tight">Abstain</h4>
+                                    <p class="text-sm text-gray-500 mt-1">I prefer not to cast a vote for this position.</p>
+                                </div>
+                            </div>
+                        </label>
+                    `;
+
+                    section.innerHTML = `
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b-2 border-gray-100 pb-2">${portfolio.name}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${candidatesHtml}
+                        </div>
+                    `;
+                    portfoliosList.appendChild(section);
+                });
+
+            } catch (err) {
+                showError('Network error connecting to the server. Please try again later.');
+            }
+
+            votingForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                validationError.classList.add('hidden');
+                
+                const votes = {};
+                let missing = false;
+
+                electionData.portfolios.forEach(p => {
+                    const selected = document.querySelector(`input[name="portfolio_${p.id}"]:checked`);
+                    if (selected) {
+                        votes[p.id.toString()] = selected.value;
+                    } else {
+                        missing = true;
+                    }
+                });
+
+                if (missing) {
+                    validationError.textContent = 'Please select a candidate or abstain for every portfolio before submitting.';
+                    validationError.classList.remove('hidden');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                try {
+                    const response = await fetch('/api/vote', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: token, votes: votes })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        validationError.textContent = data.error || 'Failed to cast vote.';
+                        validationError.classList.remove('hidden');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Submit Secure Ballot';
+                        return;
+                    }
+
+                    // Success
+                    votingContainer.classList.add('hidden');
+                    successContainer.classList.remove('hidden');
+
+                } catch (err) {
+                    validationError.textContent = 'Network error while submitting vote.';
+                    validationError.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Secure Ballot';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

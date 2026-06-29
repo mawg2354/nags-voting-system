@@ -1,0 +1,18 @@
+{
+  "name": "nags-voting-system",
+  "version": "1.0.0",
+  "description": "Simple, clean, and secure web-based voting platform.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node init.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^9.0.1",
+    "socket.io": "^4.8.3",
+    "sqlite3": "^6.0.1"
+  }
+}

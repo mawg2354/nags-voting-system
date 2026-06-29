@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAGS Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- Navbar -->
+    <div class="bg-blue-800 text-white p-4 shadow-md">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold tracking-wide">NAGS ADMIN DASHBOARD</h1>
+                <span id="live-indicator" class="hidden items-center gap-2 px-3 py-1 bg-blue-900 rounded-full text-xs font-bold text-green-400 border border-blue-700">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    LIVE
+                </span>
+            </div>
+            <button id="logout-btn" class="hidden text-sm font-semibold hover:text-blue-200">Logout</button>
+        </div>
+    </div>
+
+    <!-- Login View -->
+    <div id="login-view" class="max-w-md mx-auto mt-20 bg-white p-8 rounded-xl shadow-md border border-gray-100">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Admin Access</h2>
+        <form id="login-form" class="space-y-4">
+            <input type="password" id="admin-password" placeholder="Enter admin password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none">
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg">Login</button>
+            <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+        </form>
+    </div>
+
+    <!-- Main Dashboard View -->
+    <div id="dashboard-view" class="hidden max-w-6xl mx-auto mt-8 p-4">
+        
+        <!-- Elections List -->
+        <div id="elections-list-view">
+            <div class="flex justify-between items-end mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Elections</h2>
+            </div>
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h3 class="text-lg font-bold mb-4">Create New Election</h3>
+                <form id="create-election-form" class="flex gap-4">
+                    <input type="text" id="new-election-name" placeholder="Election Name (e.g., 2026 Executive Council)" required class="flex-1 px-4 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">Create</button>
+                </form>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="elections-grid">
+                <!-- Elections injected here -->
+            </div>
+        </div>
+
+        <!-- Single Election Management View -->
+        <div id="election-detail-view" class="hidden">
+            <button id="back-to-elections" class="mb-6 text-blue-600 hover:text-blue-800 font-semibold flex items-center">
+                &larr; Back to Elections
+            </button>
+            
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h2 id="detail-election-name" class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                        Election Name
+                        <span id="election-status-badge" class="px-3 py-1 text-sm rounded-full text-white bg-gray-500">Draft</span>
+                    </h2>
+                    <div class="mt-4 flex gap-2" id="status-controls">
+                        <!-- Status buttons injected here -->
+                    </div>
+                </div>
+                <button id="delete-election-btn" class="text-red-600 hover:text-red-800 text-sm font-semibold">Delete Election</button>
+            </div>
+
+            <!-- Tokens Stats & Generation -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Token Distribution</h3>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-8">
+                    <div class="flex gap-8">
+                        <div>
+                            <p class="text-sm font-bold text-gray-500 uppercase">Total Tokens</p>
+                            <p id="stat-total-tokens" class="text-3xl font-bold text-gray-800 transition-colors duration-500">0</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-gray-500 uppercase">Votes Cast</p>
+                            <p id="stat-used-tokens" class="text-3xl font-bold text-green-600 transition-colors duration-500">0</p>
+                        </div>
+                    </div>
+                    <div class="flex-1 max-w-md">
+                        <p class="text-xs text-gray-500 mb-1 font-bold uppercase">Generate Blank Tokens</p>
+                        <form id="generate-tokens-form" class="flex gap-2">
+                            <input type="number" id="token-count" min="1" max="1000" placeholder="Count (e.g. 50)" required class="w-32 px-4 py-2 border border-gray-300 rounded-lg outline-none text-sm">
+                            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-lg whitespace-nowrap text-sm">Generate Anonymous</button>
+                        </form>
+                    </div>
+                    <div>
+                        <a id="export-tokens-btn" href="#" target="_blank" class="inline-block mt-5 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Export CSV</a>
+                    </div>
+                </div>
+
+                <!-- Bulk Email Feature -->
+                <div class="border-t border-gray-200 pt-6">
+                    <p class="text-xs text-gray-500 mb-2 font-bold uppercase">Email Automated Invites</p>
+                    <form id="email-tokens-form" class="flex gap-4 items-start">
+                        <textarea id="email-list" placeholder="Paste email addresses here (separated by commas or new lines)..." rows="3" required class="flex-1 px-4 py-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500 text-sm resize-y"></textarea>
+                        <button type="submit" id="send-emails-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg whitespace-nowrap text-sm mt-1">Send Invites</button>
+                    </form>
+                    <div id="email-status" class="mt-3 text-sm hidden font-semibold"></div>
+                </div>
+            </div>
+
+            <!-- Portfolios and Candidates -->
+            <div class="flex justify-between items-end mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Portfolios & Candidates</h3>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+                <form id="add-portfolio-form" class="flex gap-4 mb-6">
+                    <input type="text" id="new-portfolio-name" placeholder="New Portfolio Name (e.g., President)" required class="flex-1 px-4 py-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">Add Portfolio</button>
+                </form>
+
+                <div id="portfolios-container" class="space-y-8">
+                    <!-- Portfolios injected here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Socket.io Client Script -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let adminPassword = sessionStorage.getItem('nags_admin_pw') || '';
+            let currentElectionId = null;
+
+            // Initialize WebSocket connection
+            const socket = io();
+
+            const loginView = document.getElementById('login-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            const electionsListView = document.getElementById('elections-list-view');
+            const electionDetailView = document.getElementById('election-detail-view');
+            const logoutBtn = document.getElementById('logout-btn');
+            const liveIndicator = document.getElementById('live-indicator');
+
+            const headers = () => ({ 'x-admin-password': adminPassword, 'Content-Type': 'application/json' });
+            const uploadHeaders = () => ({ 'x-admin-password': adminPassword });
+
+            const handleFetchError = (res) => {
+                if (res.status === 401) {
+                    logout();
+                    alert('Session expired or unauthorized');
+                    throw new Error('Unauthorized');
+                }
+                if (!res.ok) throw new Error('Request failed');
+            };
+
+            // Animation helper for smooth value updates
+            const animateValueUpdate = (elementId, newValue) => {
+                const el = document.getElementById(elementId);
+                if (el && el.textContent !== newValue.toString()) {
+                    el.textContent = newValue;
+                    el.classList.add('text-green-500', 'scale-125');
+                    setTimeout(() => {
+                        el.classList.remove('text-green-500', 'scale-125');
+                    }, 500);
+                }
+            };
+
+            // Listen for live updates from the server
+            socket.on('election_stats', (stats) => {
+                if (currentElectionId === stats.election_id) {
+                    // Update main token stats
+                    animateValueUpdate('stat-used-tokens', stats.used_tokens);
+                    
+                    // Update candidate votes
+                    for (const [candId, votes] of Object.entries(stats.candidates)) {
+                        animateValueUpdate(`candidate-votes-${candId}`, votes);
+                    }
+
+                    // Update abstain votes
+                    for (const [portId, abstain_votes] of Object.entries(stats.portfolios)) {
+                        animateValueUpdate(`portfolio-abstain-${portId}`, abstain_votes);
+                    }
+                }
+            });
+
+            document.getElementById('login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                adminPassword = document.getElementById('admin-password').value;
+                sessionStorage.setItem('nags_admin_pw', adminPassword);
+                document.getElementById('login-error').classList.add('hidden');
+                loadDashboard();
+            });
+
+            const logout = () => {
+                adminPassword = '';
+                sessionStorage.removeItem('nags_admin_pw');
+                dashboardView.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                loginView.classList.remove('hidden');
+                liveIndicator.classList.add('hidden');
+            };
+            logoutBtn.addEventListener('click', logout);
+
+            const getStatusColor = (status) => {
+                if (status === 'Active') return 'bg-green-500';
+                if (status === 'Closed') return 'bg-red-500';
+                return 'bg-gray-500';
+            };
+
+            const loadDashboard = async () => {
+                try {
+                    const res = await fetch('/api/admin/elections', { headers: headers() });
+                    handleFetchError(res);
+                    const elections = await res.json();
+                    
+                    loginView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    electionsListView.classList.remove('hidden');
+                    electionDetailView.classList.add('hidden');
+                    liveIndicator.classList.remove('hidden');
+                    liveIndicator.classList.add('flex');
+                    currentElectionId = null;
+
+                    const grid = document.getElementById('elections-grid');
+                    grid.innerHTML = '';
+                    elections.forEach(el => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer relative';
+                        card.innerHTML = `
+                            <span class="absolute top-4 right-4 text-xs px-2 py-1 text-white rounded-full ${getStatusColor(el.status)}">${el.status}</span>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2 pr-12">${el.name}</h3>
+                            <p class="text-xs text-gray-500">Created: ${new Date(el.created_at).toLocaleDateString()}</p>
+                            <div class="mt-4 text-blue-600 font-semibold text-sm">Manage Election &rarr;</div>
+                        `;
+                        card.addEventListener('click', () => loadElectionDetail(el.id, el.name));
+                        grid.appendChild(card);
+                    });
+                } catch (e) {
+                    if (e.message !== 'Unauthorized') alert('Failed to load elections');
+                    else document.getElementById('login-error').classList.remove('hidden');
+                }
+            };
+
+            document.getElementById('create-election-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nameInput = document.getElementById('new-election-name');
+                try {
+                    const res = await fetch('/api/admin/elections', { method: 'POST', headers: headers(), body: JSON.stringify({ name: nameInput.value }) });
+                    handleFetchError(res);
+                    nameInput.value = '';
+                    loadDashboard();
+                } catch (err) { alert('Failed to create election'); }
+            });
+
+            window.changeElectionStatus = async (status) => {
+                if (!confirm(`Are you sure you want to change the election status to ${status}?`)) return;
+                try {
+                    const res = await fetch(`/api/admin/elections/${currentElectionId}/status`, { 
+                        method: 'PUT', headers: headers(), body: JSON.stringify({ status }) 
+                    });
+                    handleFetchError(res);
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) { alert('Failed to update status'); }
+            };
+
+            const loadElectionDetail = async (id, name) => {
+                currentElectionId = id;
+                electionsListView.classList.add('hidden');
+                electionDetailView.classList.remove('hidden');
+                document.getElementById('detail-election-name').firstChild.textContent = name + ' ';
+                document.getElementById('export-tokens-btn').href = `/api/admin/tokens/export/${id}?pw=${encodeURIComponent(adminPassword)}`;
+                document.getElementById('email-status').classList.add('hidden');
+
+                try {
+                    const res = await fetch(`/api/admin/elections/${id}/details`, { headers: headers() });
+                    handleFetchError(res);
+                    const data = await res.json();
+
+                    const statusBadge = document.getElementById('election-status-badge');
+                    statusBadge.textContent = data.election.status;
+                    statusBadge.className = `px-3 py-1 text-sm rounded-full text-white ${getStatusColor(data.election.status)}`;
+
+                    const statusControls = document.getElementById('status-controls');
+                    if (data.election.status === 'Draft') {
+                        statusControls.innerHTML = `<button class="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded shadow text-sm font-bold" onclick="changeElectionStatus('Active')">Start Election</button>`;
+                    } else if (data.election.status === 'Active') {
+                        statusControls.innerHTML = `
+                            <button class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded shadow text-sm font-bold" onclick="changeElectionStatus('Draft')">Pause (Draft)</button>
+                            <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded shadow text-sm font-bold" onclick="changeElectionStatus('Closed')">Close Election</button>
+                        `;
+                    } else if (data.election.status === 'Closed') {
+                        statusControls.innerHTML = `<button class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-1 rounded shadow text-sm font-bold" onclick="changeElectionStatus('Active')">Reopen Election</button>`;
+                    }
+
+                    document.getElementById('stat-total-tokens').textContent = data.tokens.total;
+                    document.getElementById('stat-used-tokens').textContent = data.tokens.used;
+
+                    const pContainer = document.getElementById('portfolios-container');
+                    pContainer.innerHTML = '';
+
+                    if (data.portfolios.length === 0) pContainer.innerHTML = '<p class="text-gray-500 italic">No portfolios created yet.</p>';
+
+                    data.portfolios.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = 'border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm';
+                        
+                        // We intentionally don't sort candidates by votes here so they don't randomly jump around while you're looking at live updates.
+                        let candsHtml = '';
+                        p.candidates.forEach(c => {
+                            const photoHtml = c.photo_url ? `<img src="${c.photo_url}" class="w-10 h-10 rounded-full object-cover border border-gray-300 mr-3">` : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold mr-3 border border-gray-300">${c.name.charAt(0)}</div>`;
+                            candsHtml += `
+                                <div class="flex items-center justify-between p-4 border-t border-gray-100 hover:bg-gray-50">
+                                    <div class="flex items-center flex-1">
+                                        ${photoHtml}
+                                        <div>
+                                            <h5 class="text-sm font-bold text-gray-900">${c.name}</h5>
+                                            ${c.bio ? `<p class="text-xs text-gray-500 line-clamp-1">${c.bio}</p>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-6">
+                                        <div class="text-center w-12">
+                                            <p class="text-xs text-gray-500 uppercase">Votes</p>
+                                            <p id="candidate-votes-${c.id}" class="text-lg font-bold text-gray-800 transition-all duration-300 transform inline-block">${c.votes}</p>
+                                        </div>
+                                        <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deleteCandidate(${c.id})">Delete</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        div.innerHTML = `
+                            <div class="bg-gray-100 px-4 py-3 flex justify-between items-center border-b border-gray-200">
+                                <h4 class="font-bold text-gray-800 text-lg">${p.name}</h4>
+                                <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deletePortfolio(${p.id})">Delete Portfolio</button>
+                            </div>
+                            <div>
+                                ${candsHtml ? candsHtml : '<p class="text-sm text-gray-500 p-4">No candidates yet.</p>'}
+                                
+                                <!-- Abstain Stats -->
+                                <div class="bg-orange-50 px-4 py-3 border-t border-gray-100 flex justify-between items-center">
+                                    <span class="text-sm font-semibold text-orange-800">Abstain Votes</span>
+                                    <span id="portfolio-abstain-${p.id}" class="text-lg font-bold text-orange-800 transition-all duration-300 transform inline-block">${p.abstain_votes}</span>
+                                </div>
+
+                                <!-- Add Candidate Form -->
+                                <div class="p-4 border-t border-gray-200 bg-gray-50">
+                                    <h5 class="text-sm font-bold text-gray-700 mb-3">Add Candidate</h5>
+                                    <form class="add-candidate-form flex flex-col gap-3" data-pid="${p.id}">
+                                        <div class="flex gap-3">
+                                            <input type="text" name="name" placeholder="Candidate Name" required class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded outline-none focus:border-blue-500">
+                                            <input type="file" name="photo" accept="image/*" class="w-1/3 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded outline-none bg-white">
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <textarea name="bio" placeholder="Short biography..." rows="2" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded outline-none focus:border-blue-500 resize-none"></textarea>
+                                            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold py-2 px-6 rounded-lg whitespace-nowrap self-end">Add Candidate</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        `;
+                        pContainer.appendChild(div);
+                    });
+
+                    document.querySelectorAll('.add-candidate-form').forEach(f => {
+                        f.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const pid = e.target.getAttribute('data-pid');
+                            const formData = new FormData(e.target);
+                            formData.append('portfolio_id', pid);
+                            
+                            try {
+                                const r = await fetch('/api/admin/candidates', { method: 'POST', headers: uploadHeaders(), body: formData });
+                                handleFetchError(r);
+                                loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                            } catch (err) { alert('Failed to add candidate'); }
+                        });
+                    });
+
+                } catch (e) { alert('Failed to load election details'); }
+            };
+
+            document.getElementById('back-to-elections').addEventListener('click', () => loadDashboard());
+
+            document.getElementById('add-portfolio-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nameInput = document.getElementById('new-portfolio-name');
+                try {
+                    const res = await fetch('/api/admin/portfolios', { method: 'POST', headers: headers(), body: JSON.stringify({ election_id: currentElectionId, name: nameInput.value }) });
+                    handleFetchError(res);
+                    nameInput.value = '';
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) { alert('Failed to add portfolio'); }
+            });
+
+            document.getElementById('generate-tokens-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const count = document.getElementById('token-count').value;
+                try {
+                    const res = await fetch('/api/admin/tokens/generate', { method: 'POST', headers: headers(), body: JSON.stringify({ election_id: currentElectionId, count: parseInt(count) }) });
+                    handleFetchError(res);
+                    document.getElementById('token-count').value = '';
+                    alert(`Successfully generated ${count} tokens.`);
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) { alert('Failed to generate tokens'); }
+            });
+
+            document.getElementById('email-tokens-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const rawEmails = document.getElementById('email-list').value;
+                const emails = rawEmails.split(/[\n,]+/).map(em => em.trim()).filter(em => em);
+                if (emails.length === 0) return alert('Please enter at least one valid email address.');
+
+                const btn = document.getElementById('send-emails-btn');
+                const statusDiv = document.getElementById('email-status');
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                statusDiv.classList.add('hidden');
+
+                try {
+                    const res = await fetch('/api/admin/tokens/email', { 
+                        method: 'POST', 
+                        headers: headers(), 
+                        body: JSON.stringify({ election_id: currentElectionId, emails }) 
+                    });
+                    handleFetchError(res);
+                    const data = await res.json();
+                    
+                    document.getElementById('email-list').value = '';
+                    statusDiv.innerHTML = `<span class="text-green-600">Successfully sent ${data.sent} emails!</span> ${data.failed > 0 ? `<span class="text-red-500">${data.failed} failed.</span>` : ''}`;
+                    if (data.previewUrl) {
+                        statusDiv.innerHTML += ` <a href="${data.previewUrl}" target="_blank" class="text-blue-600 underline">View Test Email Preview &rarr;</a>`;
+                    }
+                    statusDiv.classList.remove('hidden');
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) {
+                    alert('Failed to send emails');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Send Invites';
+                }
+            });
+
+            document.getElementById('delete-election-btn').addEventListener('click', async () => {
+                if (!confirm('Are you sure you want to delete this entire election? This cannot be undone.')) return;
+                try {
+                    const res = await fetch(`/api/admin/elections/${currentElectionId}`, { method: 'DELETE', headers: headers() });
+                    handleFetchError(res);
+                    loadDashboard();
+                } catch (err) { alert('Failed to delete election'); }
+            });
+
+            window.deletePortfolio = async (id) => {
+                if (!confirm('Delete this portfolio and all its candidates?')) return;
+                try {
+                    const res = await fetch(`/api/admin/portfolios/${id}`, { method: 'DELETE', headers: headers() });
+                    handleFetchError(res);
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) { alert('Failed to delete portfolio'); }
+            };
+
+            window.deleteCandidate = async (id) => {
+                if (!confirm('Delete this candidate?')) return;
+                try {
+                    const res = await fetch(`/api/admin/candidates/${id}`, { method: 'DELETE', headers: headers() });
+                    handleFetchError(res);
+                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
+                } catch (err) { alert('Failed to delete candidate'); }
+            };
+
+            if (adminPassword) loadDashboard();
+        });
+    </script>
+</body>
+</html>
