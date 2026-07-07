@@ -1,46 +1,53 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./database.sqlite');
+require('dotenv').config();
+const { Client } = require('pg');
 
-db.serialize(() => {
-  db.run('PRAGMA foreign_keys = ON');
-
-  db.run(`CREATE TABLE IF NOT EXISTS elections (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Draft',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // Added abstain_votes column
-  db.run(`CREATE TABLE IF NOT EXISTS portfolios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    election_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    abstain_votes INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(election_id) REFERENCES elections(id) ON DELETE CASCADE
-  )`);
-
-  db.run(`CREATE TABLE IF NOT EXISTS candidates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    portfolio_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    bio TEXT,
-    photo_url TEXT,
-    votes INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
-  )`);
-
-  // Added sent_to column to optionally track emails
-  db.run(`CREATE TABLE IF NOT EXISTS tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    election_id INTEGER NOT NULL,
-    token TEXT UNIQUE NOT NULL,
-    sent_to TEXT,
-    has_voted BOOLEAN NOT NULL DEFAULT 0,
-    FOREIGN KEY(election_id) REFERENCES elections(id) ON DELETE CASCADE
-  )`);
-
-  console.log('Database initialized successfully with Abstain and Email tracking schema.');
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
 });
 
-db.close();
+async function initDb() {
+  try {
+    await client.connect();
+
+    await client.query(`CREATE TABLE IF NOT EXISTS elections (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'Draft',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Added abstain_votes column
+    await client.query(`CREATE TABLE IF NOT EXISTS portfolios (
+      id SERIAL PRIMARY KEY,
+      election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      abstain_votes INTEGER NOT NULL DEFAULT 0
+    )`);
+
+    await client.query(`CREATE TABLE IF NOT EXISTS candidates (
+      id SERIAL PRIMARY KEY,
+      portfolio_id INTEGER NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      bio TEXT,
+      photo_url TEXT,
+      votes INTEGER NOT NULL DEFAULT 0
+    )`);
+
+    // Added sent_to column to optionally track emails
+    await client.query(`CREATE TABLE IF NOT EXISTS tokens (
+      id SERIAL PRIMARY KEY,
+      election_id INTEGER NOT NULL REFERENCES elections(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL,
+      sent_to TEXT,
+      has_voted BOOLEAN NOT NULL DEFAULT FALSE
+    )`);
+
+    console.log('Database initialized successfully with Abstain and Email tracking schema.');
+  } catch (err) {
+    console.error('Error initializing database', err);
+  } finally {
+    await client.end();
+  }
+}
+
+initDb();
