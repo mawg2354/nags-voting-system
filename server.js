@@ -11,7 +11,7 @@ require('dotenv').config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const port = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -451,6 +451,6 @@ app.post('/api/vote', async (req, res) => {
 });
 
 // VERY IMPORTANT: Use 'server.listen' instead of 'app.listen' because of socket.io
-server.listen(port, () => {
-  console.log(`NAGS Voting System server running at http://localhost:${port}`);
+server.listen(PORT, () => {
+  console.log(`NAGS Voting System server running at http://localhost:${PORT}`);
 });
