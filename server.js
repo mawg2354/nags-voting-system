@@ -260,12 +260,17 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
 
     const results = { sent: 0, failed: 0, previewUrl: null };
     const baseUrl = `${req.protocol}://${req.get('host')}`;
