@@ -269,6 +269,14 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
   }
 });
 
+try {
+  await transporter.verify();
+  console.log("✅ Brevo SMTP connection successful");
+} catch (err) {
+  console.error("❌ Brevo SMTP verification failed:", err);
+  return res.status(500).json({ error: "Email server connection failed" });
+}
+
     const results = { sent: 0, failed: 0, previewUrl: null };
     const baseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -290,7 +298,7 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
         try {
           const voteLink = `${baseUrl}/?token=${item.token}`;
           const info = await transporter.sendMail({
-            from: '"NAGS Voting System" <admin@nagsvoting.com>',
+            from: '"NAGS-KNUST" <nagsknust02@gmail.com>',
             to: item.email,
             subject: "Your Secure Voting Link - NAGS Election",
             text: `Hello,\n\nPlease cast your vote securely using this link: ${voteLink}\n\nDo not share this link with anyone.`,
