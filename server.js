@@ -258,6 +258,8 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
     return res.status(400).json({ error: 'Missing or invalid data' });
   }
 
+  console.log("EMAIL_USER:", process.env.EMAIL_USER);
+  console.log("EMAIL_PASS exists:", !!process.env.EMAIL_PASS);
   try {
     const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
