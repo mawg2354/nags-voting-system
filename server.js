@@ -263,7 +263,7 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
   try {
     const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
-  port: 587,
+  port: 2525,
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
