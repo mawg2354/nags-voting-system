@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const crypto = require('crypto');
+const brevo = require('@getbrevo/brevo');
 const fs = require('fs');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
