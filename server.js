@@ -18,6 +18,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Brevo API client setup
+const brevoClient = new brevo.TransactionalEmailsApi();
+
+brevoClient.setApiKey(
+  brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
+
 
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 
@@ -476,4 +484,6 @@ app.post('/api/vote', async (req, res) => {
 // VERY IMPORTANT: Use 'server.listen' instead of 'app.listen' because of socket.io
 server.listen(PORT, () => {
   console.log(`NAGS Voting System server running at http://localhost:${PORT}`);
+  console.log("BREVO_API_KEY exists:", !!process.env.BREVO_API_KEY);
+
 });
