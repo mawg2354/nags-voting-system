@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const crypto = require('crypto');
-const brevo = require('@getbrevo/brevo');
+const { BrevoClient } = require('@getbrevo/brevo');
 const fs = require('fs');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
@@ -19,12 +19,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Brevo API client setup
-const brevoClient = new brevo.TransactionalEmailsApi();
+const brevoClient = new BrevoClient({
+  apiKey: process.env.BREVO_API_KEY,
+});
 
-brevoClient.setApiKey(
-  brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
-);
 
 
 const uploadDir = path.join(__dirname, 'public', 'uploads');
