@@ -278,13 +278,13 @@ app.post('/api/admin/tokens/email', adminAuth, async (req, res) => {
   }
 });
 
-try {
+/*try {
   await transporter.verify();
   console.log("✅ Brevo SMTP connection successful");
 } catch (err) {
   console.error("❌ Brevo SMTP verification failed:", err);
   return res.status(500).json({ error: "Email server connection failed" });
-}
+}*/
 
     const results = { sent: 0, failed: 0, previewUrl: null };
     const baseUrl = `${req.protocol}://${req.get('host')}`;
