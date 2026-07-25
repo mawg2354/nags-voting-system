@@ -306,23 +306,39 @@ try {
       for (const item of tokensToEmail) {
         try {
           const voteLink = `${baseUrl}/?token=${item.token}`;
-          const info = await transporter.sendMail({
-            from: '"NAGS-KNUST" <nagsknust02@gmail.com>',
-            to: item.email,
-            subject: "Your Secure Voting Link - NAGS Election",
-            text: `Hello,\n\nPlease cast your vote securely using this link: ${voteLink}\n\nDo not share this link with anyone.`,
-            html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f9fafa;">
-                <h2 style="color: #2563eb;">NAGS Association Election</h2>
-                <p>Hello,</p>
-                <p>You have been invited to cast your ballot securely and anonymously.</p>
-                <a href="${voteLink}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Click Here to Vote</a>
-                <p style="margin-top: 30px; font-size: 12px; color: #666;">This link is unique to you. Do not share it with anyone.</p>
-              </div>
-            `
-          });
-          results.sent++;
-          lastPreviewUrl = nodemailer.getTestMessageUrl(info);
+          const result = await brevoClient.transactionalEmails.sendTransacEmail({
+  sender: {
+    name: "NAGS-KNUST",
+    email: "nagsknust02@gmail.com",
+  },
+  to: [
+    {
+      email: item.email,
+    },
+  ],
+  subject: "Your Secure Voting Link - NAGS Election",
+  textContent: `Hello,
+
+Please cast your vote securely using this link: ${voteLink}
+
+Do not share this link with anyone.`,
+  htmlContent: `
+    <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f9fafa;">
+      <h2 style="color: #2563eb;">NAGS Association Election</h2>
+      <p>Hello,</p>
+      <p>You have been invited to cast your ballot securely and anonymously.</p>
+      <a href="${voteLink}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Click Here to Vote</a>
+      <p style="margin-top: 30px; font-size: 12px; color: #666;">
+        This link is unique to you. Do not share it with anyone.
+      </p>
+    </div>
+  `,
+});
+
+console.log("Brevo message ID:", result.messageId);
+
+results.sent++;
+lastPreviewUrl = result.messageId;
         } catch (e) {
           console.error(e);
           results.failed++;
