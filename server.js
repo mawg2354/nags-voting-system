@@ -250,7 +250,7 @@ app.post('/api/admin/candidates', upload.single('photo'), adminAuth, async (req,
     console.error('Candidate upload error:', err);
     res.status(500).json({ error: 'Failed to create candidate' });
   }
-
+});
   
 // DELETE candidate
 app.delete('/api/admin/candidates/:id', adminAuth, async (req, res) => {
