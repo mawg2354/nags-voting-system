@@ -4,8 +4,9 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const path = require('path');
 const crypto = require('crypto');
+const cloudinary = require('cloudinary').v2;
 const { BrevoClient } = require('@getbrevo/brevo');
-const fs = require('fs');
+const fs = require('fs-extra');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
@@ -18,6 +19,17 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Use memory storage so files are held in RAM temporarily instead of Render's disk
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 // Brevo API client setup
 const brevoClient = new BrevoClient({
   apiKey: process.env.BREVO_API_KEY,
@@ -25,23 +37,8 @@ const brevoClient = new BrevoClient({
 
 
 
-const uploadDir = path.join(__dirname, 'public', 'uploads');
+//const upload = multer({ storage });
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure Multer for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir)
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
-  }
-});
-const upload = multer({ storage: storage });
 
 // Connect to database
 const pool = new Pool({
@@ -160,14 +157,15 @@ app.get('/api/admin/elections/:id/details', adminAuth, async (req, res) => {
     const election = elRes.rows[0];
     let responseData = { election, portfolios: [], tokens: { total: 0, used: 0 } };
 
-    const tokenRes = await pool.query('SELECT COUNT(*) as total, SUM(CASE WHEN has_voted THEN 1 ELSE 0 END) as used FROM tokens WHERE election_id = $1', [electionId]);
+    const [tokenRes, portRes, candRes] = await Promise.all([
+      pool.query('SELECT COUNT(*) as total, SUM(CASE WHEN has_voted THEN 1 ELSE 0 END) as used FROM tokens WHERE election_id = $1', [electionId]),
+      pool.query('SELECT * FROM portfolios WHERE election_id = $1', [electionId]),
+      pool.query('SELECT c.* FROM candidates c JOIN portfolios p ON c.portfolio_id = p.id WHERE p.election_id = $1', [electionId])
+    ]);
+
     responseData.tokens.total = parseInt(tokenRes.rows[0].total) || 0;
     responseData.tokens.used = parseInt(tokenRes.rows[0].used) || 0;
-
-    const portRes = await pool.query('SELECT * FROM portfolios WHERE election_id = $1', [electionId]);
     const portfolios = portRes.rows;
-
-    const candRes = await pool.query('SELECT c.* FROM candidates c JOIN portfolios p ON c.portfolio_id = p.id WHERE p.election_id = $1', [electionId]);
     const candidates = candRes.rows;
 
     responseData.portfolios = portfolios.map(p => ({
@@ -209,20 +207,52 @@ app.delete('/api/admin/portfolios/:id', adminAuth, async (req, res) => {
 // POST create candidate
 app.post('/api/admin/candidates', upload.single('photo'), adminAuth, async (req, res) => {
   const { portfolio_id, name, bio } = req.body;
-  if (!portfolio_id || !name) return res.status(400).json({ error: 'Missing portfolio_id or name' });
-  const photo_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+  if (!portfolio_id || !name) {
+    return res.status(400).json({ error: 'Missing portfolio_id or name' });
+  }
+
+  let photo_url = null;
+
   try {
+    // Upload image to Cloudinary
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'nags-candidates'
+      });
+
+      photo_url = result.secure_url;
+
+      // Delete temporary local file
+      await fs.remove(req.file.path);
+    }
+
+    // Save candidate details
     const { rows } = await pool.query(
-      'INSERT INTO candidates (portfolio_id, name, bio, photo_url) VALUES ($1, $2, $3, $4) RETURNING id', 
+      'INSERT INTO candidates (portfolio_id, name, bio, photo_url) VALUES ($1, $2, $3, $4) RETURNING id',
       [portfolio_id, name, bio || '', photo_url]
     );
-    res.json({ id: rows[0].id, portfolio_id, name, bio, photo_url, votes: 0 });
+
+    res.json({
+      id: rows[0].id,
+      portfolio_id,
+      name,
+      bio,
+      photo_url,
+      votes: 0
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB Error' });
+    console.error('Candidate upload error:', err);
+
+    // Remove temporary file if something fails
+    if (req.file) {
+      await fs.remove(req.file.path);
+    }
+
+    res.status(500).json({ error: 'Failed to create candidate' });
   }
 });
-
 // DELETE candidate
 app.delete('/api/admin/candidates/:id', adminAuth, async (req, res) => {
   try {

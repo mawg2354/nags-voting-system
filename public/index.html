@@ -113,8 +113,8 @@
                     } else {
                         portfolio.candidates.forEach(candidate => {
                             const photoHtml = candidate.photo_url 
-                                ? `<img src="${candidate.photo_url}" alt="${candidate.name}" class="w-16 h-16 rounded-full object-cover shadow-sm border border-gray-200 shrink-0">`
-                                : `<div class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold shadow-sm border border-blue-200 shrink-0">${candidate.name.charAt(0)}</div>`;
+                                ? `<img src="${candidate.photo_url}" alt="${candidate.name}" class="w-40 h-40 rounded-full object-cover shadow-sm border border-gray-200 shrink-0">`
+                                : `<div class="w-40 h-40 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-5xl font-bold shadow-sm border border-blue-200 shrink-0">${candidate.name.charAt(0)}</div>`;
                             
                             const bioHtml = candidate.bio 
                                 ? `<p class="text-sm text-gray-500 mt-1">${candidate.bio}</p>`

@@ -252,23 +252,39 @@
             document.getElementById('create-election-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const nameInput = document.getElementById('new-election-name');
+                const btn = e.target.querySelector('button');
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Creating...';
                 try {
                     const res = await fetch('/api/admin/elections', { method: 'POST', headers: headers(), body: JSON.stringify({ name: nameInput.value }) });
                     handleFetchError(res);
                     nameInput.value = '';
                     loadDashboard();
                 } catch (err) { alert('Failed to create election'); }
+                finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
             });
 
             window.changeElectionStatus = async (status) => {
                 if (!confirm(`Are you sure you want to change the election status to ${status}?`)) return;
+                // Find all buttons in the status controls to disable them temporarily
+                const controls = document.getElementById('status-controls');
+                const buttons = controls.querySelectorAll('button');
+                buttons.forEach(b => b.disabled = true);
+                
                 try {
                     const res = await fetch(`/api/admin/elections/${currentElectionId}/status`, { 
                         method: 'PUT', headers: headers(), body: JSON.stringify({ status }) 
                     });
                     handleFetchError(res);
                     loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
-                } catch (err) { alert('Failed to update status'); }
+                } catch (err) { 
+                    alert('Failed to update status'); 
+                    buttons.forEach(b => b.disabled = false);
+                }
             };
 
             const loadElectionDetail = async (id, name) => {
@@ -310,14 +326,14 @@
 
                     data.portfolios.forEach(p => {
                         const div = document.createElement('div');
-                        div.className = 'border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm';
+                        div.className = 'portfolio-card border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm transition-all duration-300';
                         
                         // We intentionally don't sort candidates by votes here so they don't randomly jump around while you're looking at live updates.
                         let candsHtml = '';
                         p.candidates.forEach(c => {
-                            const photoHtml = c.photo_url ? `<img src="${c.photo_url}" class="w-10 h-10 rounded-full object-cover border border-gray-300 mr-3">` : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold mr-3 border border-gray-300">${c.name.charAt(0)}</div>`;
+                            const photoHtml = c.photo_url ? `<img src="${c.photo_url}" class="w-16 h-16 rounded-full object-cover border border-gray-300 mr-4">` : `<div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-xl text-gray-500 font-bold mr-4 border border-gray-300">${c.name.charAt(0)}</div>`;
                             candsHtml += `
-                                <div class="flex items-center justify-between p-4 border-t border-gray-100 hover:bg-gray-50">
+                                <div class="candidate-row flex items-center justify-between p-4 border-t border-gray-100 hover:bg-gray-50 transition-all duration-300">
                                     <div class="flex items-center flex-1">
                                         ${photoHtml}
                                         <div>
@@ -330,7 +346,7 @@
                                             <p class="text-xs text-gray-500 uppercase">Votes</p>
                                             <p id="candidate-votes-${c.id}" class="text-lg font-bold text-gray-800 transition-all duration-300 transform inline-block">${c.votes}</p>
                                         </div>
-                                        <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deleteCandidate(${c.id})">Delete</button>
+                                        <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deleteCandidate(${c.id}, this)">Delete</button>
                                     </div>
                                 </div>
                             `;
@@ -339,7 +355,7 @@
                         div.innerHTML = `
                             <div class="bg-gray-100 px-4 py-3 flex justify-between items-center border-b border-gray-200">
                                 <h4 class="font-bold text-gray-800 text-lg">${p.name}</h4>
-                                <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deletePortfolio(${p.id})">Delete Portfolio</button>
+                                <button class="text-red-500 hover:text-red-700 text-xs font-bold" onclick="deletePortfolio(${p.id}, this)">Delete Portfolio</button>
                             </div>
                             <div>
                                 ${candsHtml ? candsHtml : '<p class="text-sm text-gray-500 p-4">No candidates yet.</p>'}
@@ -372,6 +388,10 @@
                     document.querySelectorAll('.add-candidate-form').forEach(f => {
                         f.addEventListener('submit', async (e) => {
                             e.preventDefault();
+                            const btn = e.target.querySelector('button[type="submit"]');
+                            const originalText = btn.textContent;
+                            btn.disabled = true;
+                            btn.textContent = 'Adding...';
                             const pid = e.target.getAttribute('data-pid');
                             const formData = new FormData(e.target);
                             formData.append('portfolio_id', pid);
@@ -381,6 +401,10 @@
                                 handleFetchError(r);
                                 loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
                             } catch (err) { alert('Failed to add candidate'); }
+                            finally {
+                                btn.disabled = false;
+                                btn.textContent = originalText;
+                            }
                         });
                     });
 
@@ -392,17 +416,29 @@
             document.getElementById('add-portfolio-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const nameInput = document.getElementById('new-portfolio-name');
+                const btn = e.target.querySelector('button');
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Adding...';
                 try {
                     const res = await fetch('/api/admin/portfolios', { method: 'POST', headers: headers(), body: JSON.stringify({ election_id: currentElectionId, name: nameInput.value }) });
                     handleFetchError(res);
                     nameInput.value = '';
                     loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
                 } catch (err) { alert('Failed to add portfolio'); }
+                finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
             });
 
             document.getElementById('generate-tokens-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const count = document.getElementById('token-count').value;
+                const btn = e.target.querySelector('button');
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Generating...';
                 try {
                     const res = await fetch('/api/admin/tokens/generate', { method: 'POST', headers: headers(), body: JSON.stringify({ election_id: currentElectionId, count: parseInt(count) }) });
                     handleFetchError(res);
@@ -410,6 +446,10 @@
                     alert(`Successfully generated ${count} tokens.`);
                     loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
                 } catch (err) { alert('Failed to generate tokens'); }
+                finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
             });
 
             document.getElementById('email-tokens-form').addEventListener('submit', async (e) => {
@@ -448,31 +488,53 @@
                 }
             });
 
-            document.getElementById('delete-election-btn').addEventListener('click', async () => {
+            document.getElementById('delete-election-btn').addEventListener('click', async (e) => {
                 if (!confirm('Are you sure you want to delete this entire election? This cannot be undone.')) return;
+                const btn = e.target;
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Deleting...';
                 try {
                     const res = await fetch(`/api/admin/elections/${currentElectionId}`, { method: 'DELETE', headers: headers() });
                     handleFetchError(res);
                     loadDashboard();
-                } catch (err) { alert('Failed to delete election'); }
+                } catch (err) { 
+                    alert('Failed to delete election'); 
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
             });
 
-            window.deletePortfolio = async (id) => {
+            window.deletePortfolio = async (id, btn) => {
                 if (!confirm('Delete this portfolio and all its candidates?')) return;
+                const container = btn.closest('.portfolio-card');
+                container.style.opacity = '0.5';
+                container.style.pointerEvents = 'none';
                 try {
                     const res = await fetch(`/api/admin/portfolios/${id}`, { method: 'DELETE', headers: headers() });
                     handleFetchError(res);
-                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
-                } catch (err) { alert('Failed to delete portfolio'); }
+                    container.remove();
+                } catch (err) { 
+                    alert('Failed to delete portfolio'); 
+                    container.style.opacity = '1';
+                    container.style.pointerEvents = 'auto';
+                }
             };
 
-            window.deleteCandidate = async (id) => {
+            window.deleteCandidate = async (id, btn) => {
                 if (!confirm('Delete this candidate?')) return;
+                const row = btn.closest('.candidate-row');
+                row.style.opacity = '0.5';
+                row.style.pointerEvents = 'none';
                 try {
                     const res = await fetch(`/api/admin/candidates/${id}`, { method: 'DELETE', headers: headers() });
                     handleFetchError(res);
-                    loadElectionDetail(currentElectionId, document.getElementById('detail-election-name').firstChild.textContent.trim());
-                } catch (err) { alert('Failed to delete candidate'); }
+                    row.remove();
+                } catch (err) { 
+                    alert('Failed to delete candidate'); 
+                    row.style.opacity = '1';
+                    row.style.pointerEvents = 'auto';
+                }
             };
 
             if (adminPassword) loadDashboard();
