@@ -215,16 +215,20 @@ app.post('/api/admin/candidates', upload.single('photo'), adminAuth, async (req,
   let photo_url = null;
 
   try {
-    // Upload image to Cloudinary
+    // Upload image to Cloudinary using memory buffer
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'nags-candidates'
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'nags-candidates' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
       });
 
       photo_url = result.secure_url;
-
-      // Delete temporary local file
-      await fs.remove(req.file.path);
     }
 
     // Save candidate details
@@ -244,15 +248,10 @@ app.post('/api/admin/candidates', upload.single('photo'), adminAuth, async (req,
 
   } catch (err) {
     console.error('Candidate upload error:', err);
-
-    // Remove temporary file if something fails
-    if (req.file) {
-      await fs.remove(req.file.path);
-    }
-
     res.status(500).json({ error: 'Failed to create candidate' });
-  }
-});
+  };
+
+  
 // DELETE candidate
 app.delete('/api/admin/candidates/:id', adminAuth, async (req, res) => {
   try {
